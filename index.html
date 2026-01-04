@@ -352,6 +352,11 @@
         const MAX_HISTORY = 5;
         const STORAGE_KEY = 'fluxionviz_history';
 
+        // Configure math.js to return NaN for non-real results (e.g., log(-1)) instead of Complex numbers
+        math.config({
+            predictable: true
+        });
+
         // LocalStorage & History functions
         function setStorage(key, value) {
             try { localStorage.setItem(key, value); return true; }
