@@ -24,9 +24,9 @@ I am releasing this project to the public in the hopes that it might be useful t
 - **Performance Optimized**: Uses compiled expressions for instantaneous evaluation even with complex formulas.
 - **Math Notation**: Properly renders mathematical formulas using LaTeX formatting for clear reading.
 
-## Known Issues & Future Improvements
+## Known Issues
 
-- **Y-Axis Auto-Scaling**: The current logic uses percentile-based filtering (approx. top/bottom 3%) to handle functions with extreme values (like `tan(x)`). However, this approach can sometimes inadvertently crop valid ranges for bounded functions (e.g., semi-circles or functions starting exactly at 0). Future updates aim to implement a more adaptive scaling algorithm to handle both cases perfectly.
+- **Y-Axis Auto-Scaling**: The current logic uses percentile-based filtering (approx. top/bottom 3%) to handle functions with extreme values (like `tan(x)`). However, this approach can sometimes inadvertently crop valid ranges for bounded functions (e.g., semi-circles or functions starting exactly at 0).
 
 ## Tech Stack
 
