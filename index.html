@@ -649,7 +649,7 @@
                 yaxis: {
                     title: titleText, gridcolor: '#334155',
                     zeroline: true, zerolinecolor: '#475569',
-                    range: initialYRange, fixedrange: false
+                    range: initialYRange, fixedrange: false, autorange: false
                 },
                 margin: { t: 20, r: 30, b: 50, l: 60 },
                 showlegend: false, hovermode: 'closest', dragmode: false, annotations: []
@@ -738,8 +738,13 @@
                 const tangentHalfLen = xRange * 0.15;
                 const x1 = xValue - tangentHalfLen;
                 const x2 = xValue + tangentHalfLen;
-                const y1 = yValue + slope * (x1 - xValue);
-                const y2 = yValue + slope * (x2 - xValue);
+                let y1 = yValue + slope * (x1 - xValue);
+                let y2 = yValue + slope * (x2 - xValue);
+
+                // Clamp tangent Y values to prevent huge renders that might cause flickering or layout shifts
+                // limit to +/- 50000 which is plenty but safe
+                y1 = Math.max(-50000, Math.min(50000, y1));
+                y2 = Math.max(-50000, Math.min(50000, y2));
 
                 Plotly.restyle(chartDiv, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [2]);
                 const slopeText = `<i>m</i> = ${slope.toFixed(2)}`;
@@ -778,8 +783,11 @@
                     const tangentHalfLen = xRange * 0.15;
                     const x1 = xValue - tangentHalfLen;
                     const x2 = xValue + tangentHalfLen;
-                    const y1 = yValue + slope * (x1 - xValue);
-                    const y2 = yValue + slope * (x2 - xValue);
+                    let y1 = yValue + slope * (x1 - xValue);
+                    let y2 = yValue + slope * (x2 - xValue);
+
+                    y1 = Math.max(-50000, Math.min(50000, y1));
+                    y2 = Math.max(-50000, Math.min(50000, y2));
 
                     Plotly.restyle(chart.element, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [2]);
                     const slopeText = `<i>m</i> = ${slope.toFixed(2)}`;
@@ -921,8 +929,11 @@
                     const tangentHalfLen = xRange * 0.15;
                     const x1 = xValue - tangentHalfLen;
                     const x2 = xValue + tangentHalfLen;
-                    const y1 = yValue + slope * (x1 - xValue);
-                    const y2 = yValue + slope * (x2 - xValue);
+                    let y1 = yValue + slope * (x1 - xValue);
+                    let y2 = yValue + slope * (x2 - xValue);
+
+                    y1 = Math.max(-50000, Math.min(50000, y1));
+                    y2 = Math.max(-50000, Math.min(50000, y2));
 
                     Plotly.restyle(chart.element, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [2]);
                     const slopeText = `<i>m</i> = ${slope.toFixed(2)}`;
