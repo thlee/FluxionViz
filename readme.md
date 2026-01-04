@@ -35,7 +35,7 @@ This is a **single-file** application with no backend requirements. It runs enti
 
 ## How to Use
 
-1.  **Open the File**: Simply open `fluxionviz.html` in any modern web browser. No installation or server is required.
+1.  **Open the File**: Simply open `index.html` in any modern web browser. No installation or server is required.
 2.  **Enter a Function**: Type a mathematical expression (e.g., `x^3 - 2x`, `sin(x)`, `x * exp(x)`) in the input field.
 3.  **Explore**:
     -   Move your mouse over the graph to inspect values and slopes.
