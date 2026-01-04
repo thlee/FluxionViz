@@ -18,9 +18,15 @@ I am releasing this project to the public in the hopes that it might be useful t
 - **Flexible & Extendable**: You can add multiple levels of derivatives (e.g., $f''(x)$, $f'''(x)$) dynamically.
 - **Multi-language Support**: Fully localized in English (🇺🇸) and Korean (🇰🇷).
 - **External Learning Tools**: Buttons to instantly query Google AI or WolframAlpha for deeper insights about the function.
-- **Smart Axis Scaling**: Intelligently adjusts the viewing range to handle both diverging functions (like `tan(x)`) and bounded functions (like semi-circles) gracefully.
+- **Domain-Aware Visualization**: Distinctly visualizes regions where the function is undefined (e.g., negative domain for `log(x)`) using grayed-out traces.
+- **Session History**: Automatically saves and restores your last used function, so you can pick up right where you left off.
+- **Smart Axis Scaling**: Intelligently adjusts the viewing range to handle both diverging functions (like `tan(x)`) and bounded functions gracefully.
 - **Performance Optimized**: Uses compiled expressions for instantaneous evaluation even with complex formulas.
 - **Math Notation**: Properly renders mathematical formulas using LaTeX formatting for clear reading.
+
+## Known Issues & Future Improvements
+
+- **Y-Axis Auto-Scaling**: The current logic uses percentile-based filtering (approx. top/bottom 3%) to handle functions with extreme values (like `tan(x)`). However, this approach can sometimes inadvertently crop valid ranges for bounded functions (e.g., semi-circles or functions starting exactly at 0). Future updates aim to implement a more adaptive scaling algorithm to handle both cases perfectly.
 
 ## Tech Stack
 
