@@ -496,7 +496,7 @@
             let prevY = null;
 
             try { compiledExpr = math.compile(expression); }
-            catch (e) { return data; }
+            catch (e) { return { data: [] }; }
 
             for (let x = xMin; x <= xMax; x += STEP_SIZE) {
                 try {
@@ -506,13 +506,14 @@
                     if (typeof y !== 'number' || !isFinite(y)) {
                         shouldCut = true;
                     }
-                    else if (Math.abs(y) > 100000) { // Reduced from 10M to 100k to cut extreme outliers
+                    else if (Math.abs(y) > 100000) { // Reduced from 10M to 100k
                         shouldCut = true;
                     }
                     else if (prevY !== null) {
                         const diff = Math.abs(y - prevY);
-                        // Stricter check for vertical asymptotes: cut if jump is large (>200) and signs flip
+                        // Vertical asymptote detection
                         if (diff > 200 && Math.sign(y) !== Math.sign(prevY)) {
+                            // Mark the midpoint as a singularity approximation
                             data.push({ x: x - (STEP_SIZE / 2), y: null });
                         }
                     }
@@ -529,7 +530,7 @@
                     prevY = null;
                 }
             }
-            return data;
+            return { data };
         }
 
         function evaluateAt(codeOrExpr, x) {
@@ -603,8 +604,83 @@
                 };
             }
 
+            function splitDataByDomain(data, domainCompiledExpr) {
+                const activeData = { x: [], y: [] };
+                const ghostData = { x: [], y: [] };
+
+                let wasActive = null;
+
+                for (let i = 0; i < data.length; i++) {
+                    const pt = data[i];
+                    if (pt.y === null) {
+                        activeData.x.push(pt.x); activeData.y.push(null);
+                        ghostData.x.push(pt.x); ghostData.y.push(null);
+                        continue;
+                    }
+
+                    // Check if primary function exists at this x
+                    let isActive = false;
+                    try {
+                        // Use evaluateAt to leverage existing safety checks (NaN/Finite)
+                        // If result is non-null and finite, domain is valid.
+                        // domainCompiledExpr might be null if compilation failed, assume active? No, assume inactive if unknown? 
+                        // Actually if Charts[0] exists, use it. But here we need generic domain check.
+                        // Better to pass the compiled expr of Chart[0].
+                        if (domainCompiledExpr) {
+                            const y0 = evaluateAt(domainCompiledExpr, pt.x);
+                            isActive = (y0 !== null && isFinite(y0));
+                        } else {
+                            isActive = true; // Fallback
+                        }
+                    } catch (e) { isActive = false; }
+
+                    if (isActive) {
+                        // If switching state, break the line to prevent cross-connection
+                        if (wasActive === false) {
+                            activeData.x.push(pt.x); activeData.y.push(null);
+                        }
+                        activeData.x.push(pt.x); activeData.y.push(pt.y);
+                        // Push null to ghost to break its line
+                        if (wasActive === false) {
+                            ghostData.x.push(pt.x); ghostData.y.push(null);
+                        }
+                    } else {
+                        if (wasActive === true) {
+                            ghostData.x.push(pt.x); ghostData.y.push(null);
+                        }
+                        ghostData.x.push(pt.x); ghostData.y.push(pt.y);
+                        if (wasActive === true) {
+                            activeData.x.push(pt.x); activeData.y.push(null);
+                        }
+                    }
+                    wasActive = isActive;
+                }
+                return { active: activeData, ghost: ghostData };
+            }
+
             const chartDiv = document.getElementById(`chart-${index}`);
-            const data = generateData(expression, currentXRange.min, currentXRange.max);
+            // generateData now returns object
+            const genResult = generateData(expression, currentXRange.min, currentXRange.max);
+            const data = genResult.data;
+
+            // Determine Domain Logic
+            // If index > 0, we check against Chart 0's expression to define "active" domain.
+            let domainExpr = null;
+            if (index > 0 && charts.length > 0 && charts[0].compiledExpr) {
+                domainExpr = charts[0].compiledExpr;
+            }
+
+            // If index == 0, everything is active (or we could say purely self-consistent)
+            // But checking against itself is redundant since generateData already filters nulls.
+            // So for Chart 0, just use all as active.
+
+            let split = { active: { x: [], y: [] }, ghost: { x: [], y: [] } };
+            if (index === 0) {
+                split.active.x = data.map(d => d.x);
+                split.active.y = data.map(d => d.y);
+            } else {
+                split = splitDataByDomain(data, domainExpr);
+            }
 
             const validYs = data.map(d => d.y).filter(y => y !== null && isFinite(y)).sort((a, b) => a - b);
             let initialYRange;
@@ -630,14 +706,26 @@
             }
 
             const mainTrace = {
-                x: data.map(d => d.x),
-                y: data.map(d => d.y),
+                x: split.active.x,
+                y: split.active.y,
                 type: 'scatter',
                 mode: 'lines',
                 line: { color: CHART_COLORS[index % CHART_COLORS.length], width: 2 },
                 name: titleText,
                 connectgaps: false,
                 hoverinfo: 'skip'
+            };
+
+            const ghostTrace = {
+                x: split.ghost.x,
+                y: split.ghost.y,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#64748b', width: 2, dash: 'dot' }, // Gray dotted
+                name: titleText + ' (out of domain)',
+                connectgaps: false,
+                hoverinfo: 'skip',
+                opacity: 0.5
             };
 
             const pointerTrace = {
@@ -671,7 +759,8 @@
                 showlegend: false, hovermode: 'closest', dragmode: false, annotations: []
             };
 
-            Plotly.newPlot(chartDiv, [mainTrace, pointerTrace, tangentTrace], layout, {
+            // Order: Main, Ghost, Pointer, Tangent
+            Plotly.newPlot(chartDiv, [mainTrace, ghostTrace, pointerTrace, tangentTrace], layout, {
                 responsive: true, scrollZoom: false, displayModeBar: true
             });
 
@@ -710,8 +799,9 @@
         }
 
         function hidePointerAndTangent(chartInfo) {
-            Plotly.restyle(chartInfo.element, { 'x': [[null]], 'y': [[null]] }, [1]);
-            Plotly.restyle(chartInfo.element, { 'x': [[null, null]], 'y': [[null, null]] }, [2]);
+            // Traces: 0=Main, 1=Ghost, 2=Pointer, 3=Tangent
+            Plotly.restyle(chartInfo.element, { 'x': [[null]], 'y': [[null]] }, [2]);
+            Plotly.restyle(chartInfo.element, { 'x': [[null, null]], 'y': [[null, null]] }, [3]);
             Plotly.relayout(chartInfo.element, { annotations: [] });
         }
 
@@ -747,22 +837,23 @@
 
             const slope = evaluateAt(chartInfo.compiledDeriv, xValue);
 
-            Plotly.restyle(chartDiv, { 'x': [[xValue]], 'y': [[yValue]] }, [1]);
+            // Update Pointer (Trace 2)
+            Plotly.restyle(chartDiv, { 'x': [[xValue]], 'y': [[yValue]] }, [2]);
 
             if (slope !== null && isFinite(slope)) {
                 const xRange = xaxis.range[1] - xaxis.range[0];
                 const tangentHalfLen = xRange * 0.15;
                 const x1 = xValue - tangentHalfLen;
                 const x2 = xValue + tangentHalfLen;
-                let y1 = yValue + slope * (x1 - xValue);
-                let y2 = yValue + slope * (x2 - xValue);
+                const y1 = yValue + slope * (x1 - xValue);
+                const y2 = yValue + slope * (x2 - xValue);
 
-                // Clamp tangent Y values to prevent huge renders that might cause flickering or layout shifts
-                // limit to +/- 50000 which is plenty but safe
-                y1 = Math.max(-50000, Math.min(50000, y1));
-                y2 = Math.max(-50000, Math.min(50000, y2));
+                // Clamp
+                let cy1 = Math.max(-50000, Math.min(50000, y1));
+                let cy2 = Math.max(-50000, Math.min(50000, y2));
 
-                Plotly.restyle(chartDiv, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [2]);
+                // Update Tangent (Trace 3)
+                Plotly.restyle(chartDiv, { 'x': [[x1, x2]], 'y': [[cy1, cy2]] }, [3]);
                 const slopeText = `<i>m</i> = ${slope.toFixed(3)}`;
                 Plotly.relayout(chartDiv, {
                     annotations: [{
@@ -773,7 +864,7 @@
                     }]
                 });
             } else {
-                Plotly.restyle(chartDiv, { 'x': [[null, null]], 'y': [[null, null]] }, [2]);
+                Plotly.restyle(chartDiv, { 'x': [[null, null]], 'y': [[null, null]] }, [3]);
                 Plotly.relayout(chartDiv, { annotations: [] });
             }
             syncPointerPosition(xValue, chartInfo.index);
@@ -790,7 +881,8 @@
                 }
 
                 const slope = evaluateAt(chart.compiledDeriv || chart.derivativeExpr, xValue);
-                Plotly.restyle(chart.element, { 'x': [[xValue]], 'y': [[yValue]] }, [1]);
+                // Trace 2 = Pointer
+                Plotly.restyle(chart.element, { 'x': [[xValue]], 'y': [[yValue]] }, [2]);
 
                 if (slope !== null && isFinite(slope)) {
                     const layout = chart.element._fullLayout;
@@ -805,7 +897,8 @@
                     y1 = Math.max(-50000, Math.min(50000, y1));
                     y2 = Math.max(-50000, Math.min(50000, y2));
 
-                    Plotly.restyle(chart.element, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [2]);
+                    // Trace 3 = Tangent
+                    Plotly.restyle(chart.element, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [3]);
                     const slopeText = `<i>m</i> = ${slope.toFixed(3)}`;
                     Plotly.relayout(chart.element, {
                         annotations: [{
@@ -816,7 +909,7 @@
                         }]
                     });
                 } else {
-                    Plotly.restyle(chart.element, { 'x': [[null, null]], 'y': [[null, null]] }, [2]);
+                    Plotly.restyle(chart.element, { 'x': [[null, null]], 'y': [[null, null]] }, [3]);
                     Plotly.relayout(chart.element, { annotations: [] });
                 }
 
@@ -854,9 +947,27 @@
         }
 
         function syncXAxisRange(xMin, xMax) {
-            charts.forEach(chart => {
-                const newData = generateData(chart.expression, xMin, xMax);
+            charts.forEach((chart, index) => {
+                const genResult = generateData(chart.expression, xMin, xMax);
+                const newData = genResult.data;
                 chart.data = newData;
+
+                // Recalculate Split for Zoom
+                let domainExpr = null;
+                // Important: Need reference to Chart 0 for index > 0
+                // charts[] array is available.
+                if (index > 0 && charts.length > 0 && charts[0].compiledExpr) {
+                    domainExpr = charts[0].compiledExpr;
+                }
+
+                let split = { active: { x: [], y: [] }, ghost: { x: [], y: [] } };
+                if (index === 0) {
+                    split.active.x = newData.map(d => d.x);
+                    split.active.y = newData.map(d => d.y);
+                } else {
+                    split = splitDataByDomain(newData, domainExpr);
+                }
+
 
                 const validYs = newData.map(d => d.y).filter(y => y !== null && isFinite(y)).sort((a, b) => a - b);
 
@@ -881,13 +992,14 @@
                     chart.yRange = [-10, 10];
                 }
 
+                // Update Plotly: Trace 0 (Main), Trace 1 (Ghost)
                 Plotly.update(chart.element, {
-                    'x': [newData.map(d => d.x)],
-                    'y': [newData.map(d => d.y)]
+                    'x': [split.active.x, split.ghost.x],
+                    'y': [split.active.y, split.ghost.y]
                 }, {
                     'xaxis.range': [xMin, xMax],
                     'yaxis.range': chart.yRange
-                }, [0]);
+                }, [0, 1]);
             });
         }
 
@@ -1077,13 +1189,12 @@
             if (toolbarToggle) toolbarToggle.textContent = toolbarVisible ? t.hide_toolbar : t.show_toolbar;
         }
 
-        // Initialize Language
-        setLanguage(currentLang);
-
+        // Initialize: Load history first to prevent default overwrite
         const history = getHistory();
         if (history.length > 0) functionInput.value = history[0];
-        renderHistory();
-        initCharts();
+
+        // Initialize Language (this will also call renderHistory and initCharts)
+        setLanguage(currentLang);
     </script>
 </body>
 
