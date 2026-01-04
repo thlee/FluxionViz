@@ -806,6 +806,9 @@
         }
 
         function handleMouseMove(e, chartInfo) {
+            // Disable mouse interaction if animation is playing
+            if (animationId) return;
+
             const chartDiv = chartInfo.element;
             const rect = chartDiv.getBoundingClientRect();
             const layout = chartDiv._fullLayout;
@@ -868,6 +871,51 @@
                 Plotly.relayout(chartDiv, { annotations: [] });
             }
             syncPointerPosition(xValue, chartInfo.index);
+        }
+
+        // ...
+
+        function updatePointerAtX(xValue) {
+            charts.forEach(chart => {
+                const yValue = evaluateAt(chart.compiledExpr || chart.expression, xValue);
+                if (yValue === null) {
+                    hidePointerAndTangent(chart);
+                    return;
+                }
+                const slope = evaluateAt(chart.compiledDeriv || chart.derivativeExpr, xValue);
+
+                // Update Pointer (Trace 2) - Fixed index from 1 to 2
+                Plotly.restyle(chart.element, { 'x': [[xValue]], 'y': [[yValue]] }, [2]);
+
+                if (slope !== null && isFinite(slope)) {
+                    const layout = chart.element._fullLayout;
+                    if (!layout || !layout.xaxis) return;
+                    const xRange = layout.xaxis.range[1] - layout.xaxis.range[0];
+                    const tangentHalfLen = xRange * 0.15;
+                    const x1 = xValue - tangentHalfLen;
+                    const x2 = xValue + tangentHalfLen;
+                    let y1 = yValue + slope * (x1 - xValue);
+                    let y2 = yValue + slope * (x2 - xValue);
+
+                    y1 = Math.max(-50000, Math.min(50000, y1));
+                    y2 = Math.max(-50000, Math.min(50000, y2));
+
+                    // Update Tangent (Trace 3) - Fixed index from 2 to 3
+                    Plotly.restyle(chart.element, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [3]);
+                    const slopeText = `<i>m</i> = ${slope.toFixed(3)}`;
+                    Plotly.relayout(chart.element, {
+                        annotations: [{
+                            x: xValue, y: yValue, xref: 'x', yref: 'y',
+                            text: slopeText, showarrow: false,
+                            font: { color: '#ef4444', size: 12 },
+                            bgcolor: 'rgba(30, 41, 59, 0.9)', borderpad: 4, yshift: 20
+                        }]
+                    });
+                } else {
+                    Plotly.restyle(chart.element, { 'x': [[null, null]], 'y': [[null, null]] }, [3]);
+                    Plotly.relayout(chart.element, { annotations: [] });
+                }
+            });
         }
 
         function syncPointerPosition(xValue, sourceIndex) {
