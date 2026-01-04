@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FluxionViz: Function & Derivative Visualizer</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.2.1/math.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .input-field {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .btn-apply {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.375rem;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-apply:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-add-derivative {
+            background-color: #10b981;
+            color: white;
+            padding: 0.4rem 1rem;
+            border-radius: 0.375rem;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .btn-add-derivative:hover:not(:disabled) {
+            background-color: #059669;
+        }
+
+        .btn-add-derivative:disabled {
+            background-color: #374151;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+
+        .label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: #cbd5e1;
+        }
+
+        .chart-container {
+            background-color: #1e293b;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .chart-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-plot {
+            width: 100%;
+            height: 350px;
+        }
+
+        .control-panel {
+            position: sticky;
+            top: 1rem;
+        }
+
+        .katex {
+            font-size: 1.1em;
+        }
+
+        .modebar-hidden .modebar {
+            display: none !important;
+        }
+
+        .btn-toggle {
+            background-color: #475569;
+            color: white;
+            padding: 0.4rem 0.75rem;
+            border-radius: 0.375rem;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.875rem;
+            width: 100%;
+        }
+
+        .btn-toggle:hover {
+            background-color: #64748b;
+        }
+
+        .btn-toggle.active {
+            background-color: #10b981;
+        }
+
+        .btn-toggle.active:hover {
+            background-color: #059669;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #475569;
+            border-radius: 0.5rem;
+            height: 0.5rem;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 1rem;
+            height: 1rem;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #2563eb;
+        }
+
+        .history-item {
+            background-color: #334155;
+            padding: 0.4rem 0.6rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item:hover {
+            background-color: #475569;
+        }
+
+        .btn-tool-icon {
+            background-color: #334155;
+            color: #e2e8f0;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+            cursor: pointer;
+            border: 1px solid #475569;
+            transition: all 0.2s;
+        }
+
+        .btn-tool-icon:hover {
+            background-color: #475569;
+            transform: scale(1.1);
+        }
+
+        .btn-tool-icon.google:hover {
+            border-color: #4285F4;
+            color: #4285F4;
+        }
+
+        .btn-tool-icon.wolfram:hover {
+            border-color: #DD1100;
+            color: #DD1100;
+        }
+
+        .lang-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 50;
+        }
+
+        .lang-btn {
+            padding: 0.3rem 0.5rem;
+            border-radius: 0.375rem;
+            border: 1px solid #334155;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            background-color: #1e293b;
+            opacity: 0.7;
+        }
+
+        .lang-btn:hover {
+            opacity: 1;
+            transform: scale(1.1);
+            border-color: #64748b;
+        }
+
+        .lang-btn.active {
+            opacity: 1;
+            border-color: #3b82f6;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8 min-h-screen flex flex-col">
+    <div class="lang-toggle">
+        <button class="lang-btn" onclick="setLanguage('en')" title="English">🇺🇸</button>
+        <button class="lang-btn" onclick="setLanguage('ko')" title="한국어">🇰🇷</button>
+    </div>
+    <div class="max-w-7xl mx-auto w-full flex-grow flex flex-col relative">
+
+
+        <header class="mb-6 flex-none">
+            <h1 class="text-3xl md:text-4xl font-bold text-center mb-2">
+                <span class="text-blue-400">Fluxion</span><span class="text-white">Viz</span>
+            </h1>
+            <p class="text-center text-gray-400 text-sm" data-i18n="subtitle">
+                Interactive Function & Derivative Visualizer
+            </p>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-6 flex-grow">
+            <div class="lg:w-72 flex-shrink-0">
+                <div class="control-panel bg-slate-800 rounded-lg p-5 shadow-xl">
+                    <h3 class="text-lg font-semibold mb-4 text-blue-300" data-i18n="controls_title">Controls</h3>
+
+                    <div class="mb-4">
+                        <label class="label" data-i18n="func_label">Function f(x):</label>
+                        <input type="text" id="functionInput" class="input-field w-full" value="tan(x)"
+                            placeholder="e.g., sin(x), x^2">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="label" data-i18n="range_label">X-Axis Range:</label>
+                        <div class="flex gap-2 items-center">
+                            <input type="number" id="xMin" class="input-field w-full" value="-5" step="0.1">
+                            <span class="text-gray-400" data-i18n="to">to</span>
+                            <input type="number" id="xMax" class="input-field w-full" value="5" step="0.1">
+                        </div>
+                    </div>
+
+                    <button id="applyBtn" class="btn-apply w-full" data-i18n="apply_btn">Apply / Reset</button>
+
+                    <hr class="my-4 border-slate-600">
+
+                    <div class="mb-4">
+                        <label class="label"><span data-i18n="speed_label">Play Speed</span>: <span
+                                id="speedValue">0</span></label>
+                        <input type="range" id="playSpeed"
+                            class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer" min="0" max="100"
+                            value="0" step="10">
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span data-i18n="stop">Stop</span>
+                            <span data-i18n="fast">Fast</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="label" data-i18n="toolbar_label">Chart Toolbar:</label>
+                        <button id="toolbarToggle" class="btn-toggle" data-i18n="show_toolbar">Show Toolbar</button>
+                    </div>
+
+                    <hr class="my-4 border-slate-600">
+
+                    <div>
+                        <label class="label" data-i18n="history_label">History (Recent 10):</label>
+                        <div id="historyList" class="mt-2 space-y-1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 min-h-[600px]">
+                <div id="chartsContainer" class="space-y-4">
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-12 py-6 text-center text-gray-500 text-sm border-t border-slate-700">
+            <p>&copy; 2026 Tae-Ho Lee (<a href="mailto:alfalf@gmail.com"
+                    class="hover:text-blue-400 transition-colors">alfalf@gmail.com</a>). <span data-i18n="rights">All
+                    rights reserved.</span></p>
+            <p class="mt-1"><span data-i18n="license_prefix">Released under the</span> <a
+                    href="https://opensource.org/licenses/MIT" target="_blank" class="text-blue-400 hover:underline">MIT
+                    License</a>.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Configuration
+        const STEP_SIZE = 0.005;
+        const ZOOM_FACTOR = 0.1;
+        const MAX_HISTORY = 10;
+        const STORAGE_KEY = 'fluxionviz_history';
+
+        // LocalStorage & History functions
+        function setStorage(key, value) {
+            try { localStorage.setItem(key, value); return true; }
+            catch (e) { console.error('localStorage error:', e); return false; }
+        }
+
+        function getStorage(key) {
+            try { return localStorage.getItem(key); }
+            catch (e) { console.error('localStorage error:', e); return null; }
+        }
+
+        function getHistory() {
+            const historyStr = getStorage(STORAGE_KEY);
+            if (historyStr) { try { return JSON.parse(historyStr); } catch (e) { return []; } }
+            return [];
+        }
+
+        function saveToHistory(funcExpr) {
+            let history = getHistory();
+            history = history.filter(h => h !== funcExpr);
+            history.unshift(funcExpr);
+            history = history.slice(0, MAX_HISTORY);
+            setStorage(STORAGE_KEY, JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const historyList = document.getElementById('historyList');
+            const history = getHistory();
+            if (history.length === 0) {
+                historyList.innerHTML = `<div class="text-gray-500 text-xs">${translations[currentLang].no_history}</div>`;
+                return;
+            }
+            historyList.innerHTML = history.map(func =>
+                `<div class="history-item" onclick="loadFromHistory('${func.replace(/'/g, "\\'")}')">${func}</div>`
+            ).join('');
+        }
+
+        function loadFromHistory(funcExpr) {
+            functionInput.value = funcExpr;
+            initCharts();
+        }
+
+        const CHART_COLORS = ['#60a5fa', '#34d399', '#f472b6', '#fbbf24', '#a78bfa', '#fb923c', '#2dd4bf'];
+
+        let charts = [];
+        let currentXRange = { min: -5, max: 5 };
+        let toolbarVisible = false;
+        let playSpeed = 0;
+        let animationId = null;
+        let animationX = null; // Initialize animationX
+        const LANG_STORAGE_KEY = 'fluxionviz_lang';
+        let currentLang = getStorage(LANG_STORAGE_KEY) || 'en';
+
+        const translations = {
+            en: {
+                subtitle: 'Interactive Function & Derivative Visualizer',
+                controls_title: 'Controls',
+                func_label: 'Function f(x):',
+                range_label: 'X-Axis Range:',
+                to: 'to',
+                apply_btn: 'Apply / Reset',
+                speed_label: 'Play Speed',
+                stop: 'Stop',
+                fast: 'Fast',
+                toolbar_label: 'Chart Toolbar:',
+                show_toolbar: 'Show Toolbar',
+                hide_toolbar: 'Hide Toolbar',
+                history_label: 'History (Recent 10):',
+                no_history: 'No history yet',
+                rights: 'All rights reserved.',
+                license_prefix: 'Released under the',
+                add_deriv_btn: '+ Add Derivative',
+                google_tooltip: 'Ask Google AI about this function',
+                wolfram_tooltip: 'Analyze in WolframAlpha',
+                google_query: 'Graph features and differentiability of function y='
+            },
+            ko: {
+                subtitle: '대화형 함수 및 미분 시각화 도구',
+                controls_title: '제어판',
+                func_label: '함수 f(x):',
+                range_label: 'X축 범위:',
+                to: '~',
+                apply_btn: '적용 / 초기화',
+                speed_label: '재생 속도',
+                stop: '정지',
+                fast: '빠름',
+                toolbar_label: '차트 툴바:',
+                show_toolbar: '툴바 보이기',
+                hide_toolbar: '툴바 숨기기',
+                history_label: '기록 (최근 10개):',
+                no_history: '아직 기록이 없습니다',
+                rights: 'All rights reserved.',
+                license_prefix: 'MIT 라이선스로 배포됩니다.',
+                add_deriv_btn: '+ 미분 추가하기',
+                google_tooltip: '이 함수에 대해 Google AI에게 질문하기',
+                wolfram_tooltip: 'WolframAlpha에서 분석하기',
+                google_query: '함수 그래프 특징과 미분 가능성 y='
+            }
+        };
+
+        const functionInput = document.getElementById('functionInput');
+        const xMinInput = document.getElementById('xMin');
+        const xMaxInput = document.getElementById('xMax');
+        const applyBtn = document.getElementById('applyBtn');
+        const chartsContainer = document.getElementById('chartsContainer');
+
+        function toLatex(expression) {
+            try { const node = math.parse(expression); return node.toTex({ parenthesis: 'auto' }); }
+            catch (e) { return expression; }
+        }
+
+        function renderLatex(element, latex) {
+            try { katex.render(latex, element, { throwOnError: false, displayMode: false }); }
+            catch (e) { element.textContent = latex; }
+        }
+
+        function isConstant(expression) {
+            try {
+                const simplified = math.simplify(expression).toString();
+                return !/\bx\b/.test(simplified);
+            } catch (e) { return false; }
+        }
+
+        function getDerivative(expression) {
+            try {
+                const derivative = math.derivative(expression, 'x');
+                return math.simplify(derivative).toString();
+            } catch (error) { throw new Error('Unable to calculate derivative: ' + error.message); }
+        }
+
+
+
+        function generateData(expression, xMin, xMax) {
+            const data = [];
+            let compiledExpr;
+            let prevY = null;
+
+            try { compiledExpr = math.compile(expression); }
+            catch (e) { return data; }
+
+            for (let x = xMin; x <= xMax; x += STEP_SIZE) {
+                try {
+                    let y = compiledExpr.evaluate({ x: x });
+                    let shouldCut = false;
+
+                    if (typeof y !== 'number' || !isFinite(y)) {
+                        shouldCut = true;
+                    }
+                    else if (Math.abs(y) > 100000) { // Reduced from 10M to 100k to cut extreme outliers
+                        shouldCut = true;
+                    }
+                    else if (prevY !== null) {
+                        const diff = Math.abs(y - prevY);
+                        // Stricter check for vertical asymptotes: cut if jump is large (>200) and signs flip
+                        if (diff > 200 && Math.sign(y) !== Math.sign(prevY)) {
+                            data.push({ x: x - (STEP_SIZE / 2), y: null });
+                        }
+                    }
+
+                    if (shouldCut) {
+                        data.push({ x: x, y: null });
+                        prevY = null;
+                    } else {
+                        data.push({ x: x, y: y });
+                        prevY = y;
+                    }
+                } catch (error) {
+                    data.push({ x: x, y: null });
+                    prevY = null;
+                }
+            }
+            return data;
+        }
+
+        function evaluateAt(codeOrExpr, x) {
+            try {
+                // If it's a compiled code object, use .evaluate(), else use math.evaluate for string
+                const result = (typeof codeOrExpr === 'object' && codeOrExpr.evaluate)
+                    ? codeOrExpr.evaluate({ x: x })
+                    : math.evaluate(codeOrExpr, { x: x });
+
+                // Allow much larger values for evaluation
+                if (typeof result === 'number' && isFinite(result) && Math.abs(result) < 100000000) {
+                    return result;
+                }
+                return null;
+            } catch (e) { return null; }
+        }
+
+
+
+        function createChart(index, expression, derivativeExpr) {
+            const container = document.createElement('div');
+            container.className = 'chart-container';
+            container.id = `chart-container-${index}`;
+
+            const titleText = index === 0 ? 'f(x)' : `f${"'".repeat(index)}(x)`;
+            const canAddDerivative = !isConstant(expression);
+            const isFirstChart = index === 0;
+
+            const latex = toLatex(expression);
+
+            container.innerHTML = `
+                <div class="chart-header">
+                    <div class="chart-title">
+                        <span class="text-xl font-semibold" style="color: ${CHART_COLORS[index % CHART_COLORS.length]}">
+                            ${titleText} =
+                        </span>
+                        <span id="formula-${index}" class="text-lg" style="color: ${CHART_COLORS[index % CHART_COLORS.length]}"></span>
+                        
+                        <div class="flex items-center">
+                            <button class="btn-tool-icon google" title="${translations[currentLang].google_tooltip}">🔍</button>
+                            <button class="btn-tool-icon wolfram" title="${translations[currentLang].wolfram_tooltip}">🐺</button>
+                        </div>
+                    </div>
+                    ${!isFirstChart ? `
+                        <button class="btn-add-derivative" id="addBtn-${index}" ${!canAddDerivative ? 'disabled' : ''}>
+                            ${translations[currentLang].add_deriv_btn}
+                        </button>
+                    ` : ''}
+                </div>
+                <div id="chart-${index}" class="chart-plot"></div>
+            `;
+
+            chartsContainer.appendChild(container);
+            renderLatex(document.getElementById(`formula-${index}`), latex);
+
+            // Add Listeners for Tools
+            const googleBtn = container.querySelector('.btn-tool-icon.google');
+            const wolframBtn = container.querySelector('.btn-tool-icon.wolfram');
+
+            if (googleBtn) {
+                googleBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    const query = `${translations[currentLang].google_query}${expression}`;
+                    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
+                };
+            }
+            if (wolframBtn) {
+                wolframBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    window.open(`https://www.wolframalpha.com/input?i=${encodeURIComponent(expression)}`, '_blank');
+                };
+            }
+
+            const chartDiv = document.getElementById(`chart-${index}`);
+            const data = generateData(expression, currentXRange.min, currentXRange.max);
+
+            const validYs = data.map(d => d.y).filter(y => y !== null && isFinite(y)).sort((a, b) => a - b);
+            let initialYRange;
+            if (validYs.length === 0) {
+                initialYRange = [-10, 10];
+            } else {
+                // Revert to Percentile Logic (2% - 98%) per user request.
+                // This balances outlier removal (tan(x)) and visibility.
+                const minIdx = Math.floor(validYs.length * 0.03);
+                const maxIdx = Math.floor(validYs.length * 0.97);
+
+                let yMin = validYs[Math.max(0, minIdx)];
+                let yMax = validYs[Math.min(validYs.length - 1, maxIdx)];
+
+                const diff = yMax - yMin;
+                if (diff === 0) {
+                    yMin -= 5; yMax += 5;
+                } else {
+                    const padding = diff * 0.2;
+                    yMin -= padding; yMax += padding;
+                }
+                initialYRange = [yMin, yMax];
+            }
+
+            const mainTrace = {
+                x: data.map(d => d.x),
+                y: data.map(d => d.y),
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: CHART_COLORS[index % CHART_COLORS.length], width: 2 },
+                name: titleText,
+                connectgaps: false,
+                hoverinfo: 'skip'
+            };
+
+            const pointerTrace = {
+                x: [null], y: [null],
+                type: 'scatter', mode: 'markers',
+                marker: { color: '#ffffff', size: 12, line: { color: CHART_COLORS[index % CHART_COLORS.length], width: 2 } },
+                hoverinfo: 'skip', showlegend: false
+            };
+
+            const tangentTrace = {
+                x: [null, null], y: [null, null],
+                type: 'scatter', mode: 'lines',
+                line: { color: '#ef4444', width: 2, dash: 'dash' },
+                hoverinfo: 'skip', showlegend: false
+            };
+
+            const layout = {
+                paper_bgcolor: '#1e293b', plot_bgcolor: '#0f172a',
+                font: { color: '#e2e8f0' },
+                xaxis: {
+                    title: 'x', gridcolor: '#334155',
+                    zeroline: true, zerolinecolor: '#475569',
+                    range: [currentXRange.min, currentXRange.max]
+                },
+                yaxis: {
+                    title: titleText, gridcolor: '#334155',
+                    zeroline: true, zerolinecolor: '#475569',
+                    range: initialYRange, fixedrange: false
+                },
+                margin: { t: 20, r: 30, b: 50, l: 60 },
+                showlegend: false, hovermode: 'closest', dragmode: false, annotations: []
+            };
+
+            Plotly.newPlot(chartDiv, [mainTrace, pointerTrace, tangentTrace], layout, {
+                responsive: true, scrollZoom: false, displayModeBar: true
+            });
+
+            if (!toolbarVisible) chartDiv.classList.add('modebar-hidden');
+
+            // Compile expressions for performance
+            let compiledExpr = null;
+            let compiledDeriv = null;
+            try { compiledExpr = math.compile(expression); } catch (e) { }
+            try { compiledDeriv = math.compile(derivativeExpr); } catch (e) { }
+
+            const chartInfo = {
+                index: index, element: chartDiv,
+                expression: expression, derivativeExpr: derivativeExpr,
+                compiledExpr: compiledExpr, compiledDeriv: compiledDeriv,
+                data: data, yRange: initialYRange
+            };
+            charts.push(chartInfo);
+
+            chartDiv.addEventListener('mousemove', function (e) { handleMouseMove(e, chartInfo); });
+            chartDiv.addEventListener('mouseleave', function () {
+                hidePointerAndTangent(chartInfo);
+                charts.forEach(c => { if (c.index !== chartInfo.index) hidePointerAndTangent(c); });
+            });
+            chartDiv.addEventListener('wheel', function (e) {
+                e.preventDefault(); handleWheelZoom(e, chartDiv);
+            }, { passive: false });
+
+            if (!isFirstChart) {
+                const addBtn = document.getElementById(`addBtn-${index}`);
+                if (addBtn && canAddDerivative) {
+                    addBtn.addEventListener('click', function () { addDerivativeChart(index, expression); });
+                }
+            }
+            return chartInfo;
+        }
+
+        function hidePointerAndTangent(chartInfo) {
+            Plotly.restyle(chartInfo.element, { 'x': [[null]], 'y': [[null]] }, [1]);
+            Plotly.restyle(chartInfo.element, { 'x': [[null, null]], 'y': [[null, null]] }, [2]);
+            Plotly.relayout(chartInfo.element, { annotations: [] });
+        }
+
+        function handleMouseMove(e, chartInfo) {
+            const chartDiv = chartInfo.element;
+            const rect = chartDiv.getBoundingClientRect();
+            const layout = chartDiv._fullLayout;
+            if (!layout || !layout.xaxis) return;
+
+            const xaxis = layout.xaxis;
+            const xPixel = e.clientX - rect.left;
+            const plotLeft = xaxis._offset;
+            const plotWidth = xaxis._length;
+
+            if (xPixel < plotLeft || xPixel > plotLeft + plotWidth) return;
+            const xRatio = (xPixel - plotLeft) / plotWidth;
+            let xValue = xaxis.range[0] + xRatio * (xaxis.range[1] - xaxis.range[0]);
+
+            // Snap to nearest integer if close enough
+            const snapThreshold = (xaxis.range[1] - xaxis.range[0]) / plotWidth * 5; // 5 pixels
+            const nearestInt = Math.round(xValue);
+            if (Math.abs(xValue - nearestInt) < snapThreshold) {
+                xValue = nearestInt;
+            }
+
+            const yValue = evaluateAt(chartInfo.compiledExpr, xValue);
+
+            if (yValue === null) {
+                hidePointerAndTangent(chartInfo);
+                charts.forEach(c => { if (c.index !== chartInfo.index) hidePointerAndTangent(c); });
+                return;
+            }
+
+            const slope = evaluateAt(chartInfo.compiledDeriv, xValue);
+
+            Plotly.restyle(chartDiv, { 'x': [[xValue]], 'y': [[yValue]] }, [1]);
+
+            if (slope !== null && isFinite(slope)) {
+                const xRange = xaxis.range[1] - xaxis.range[0];
+                const tangentHalfLen = xRange * 0.15;
+                const x1 = xValue - tangentHalfLen;
+                const x2 = xValue + tangentHalfLen;
+                const y1 = yValue + slope * (x1 - xValue);
+                const y2 = yValue + slope * (x2 - xValue);
+
+                Plotly.restyle(chartDiv, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [2]);
+                const slopeText = `<i>m</i> = ${slope.toFixed(2)}`;
+                Plotly.relayout(chartDiv, {
+                    annotations: [{
+                        x: xValue, y: yValue, xref: 'x', yref: 'y',
+                        text: slopeText, showarrow: false,
+                        font: { color: '#ef4444', size: 12 },
+                        bgcolor: 'rgba(30, 41, 59, 0.9)', borderpad: 4, yshift: 20
+                    }]
+                });
+            } else {
+                Plotly.restyle(chartDiv, { 'x': [[null, null]], 'y': [[null, null]] }, [2]);
+                Plotly.relayout(chartDiv, { annotations: [] });
+            }
+            syncPointerPosition(xValue, chartInfo.index);
+        }
+
+        function syncPointerPosition(xValue, sourceIndex) {
+            charts.forEach((chart, idx) => {
+                if (idx === sourceIndex) return;
+
+                const yValue = evaluateAt(chart.compiledExpr || chart.expression, xValue);
+                if (yValue === null) {
+                    hidePointerAndTangent(chart);
+                    return;
+                }
+
+                const slope = evaluateAt(chart.compiledDeriv || chart.derivativeExpr, xValue);
+                Plotly.restyle(chart.element, { 'x': [[xValue]], 'y': [[yValue]] }, [1]);
+
+                if (slope !== null && isFinite(slope)) {
+                    const layout = chart.element._fullLayout;
+                    if (!layout || !layout.xaxis) return;
+                    const xRange = layout.xaxis.range[1] - layout.xaxis.range[0];
+                    const tangentHalfLen = xRange * 0.15;
+                    const x1 = xValue - tangentHalfLen;
+                    const x2 = xValue + tangentHalfLen;
+                    const y1 = yValue + slope * (x1 - xValue);
+                    const y2 = yValue + slope * (x2 - xValue);
+
+                    Plotly.restyle(chart.element, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [2]);
+                    const slopeText = `<i>m</i> = ${slope.toFixed(2)}`;
+                    Plotly.relayout(chart.element, {
+                        annotations: [{
+                            x: xValue, y: yValue, xref: 'x', yref: 'y',
+                            text: slopeText, showarrow: false,
+                            font: { color: '#ef4444', size: 12 },
+                            bgcolor: 'rgba(30, 41, 59, 0.9)', borderpad: 4, yshift: 20
+                        }]
+                    });
+                } else {
+                    Plotly.restyle(chart.element, { 'x': [[null, null]], 'y': [[null, null]] }, [2]);
+                    Plotly.relayout(chart.element, { annotations: [] });
+                }
+
+            });
+        }
+
+        function handleWheelZoom(e, sourceChart) {
+            const layout = sourceChart._fullLayout;
+            if (!layout || !layout.xaxis) return;
+            const xaxis = layout.xaxis;
+            const rect = sourceChart.getBoundingClientRect();
+            const xPixel = e.clientX - rect.left;
+            const plotLeft = xaxis._offset;
+            const plotWidth = xaxis._length;
+
+            if (xPixel < plotLeft || xPixel > plotLeft + plotWidth) return;
+
+            const currentRange = xaxis.range[1] - xaxis.range[0];
+            const zoomDirection = e.deltaY > 0 ? 1 : -1;
+            const zoomAmount = currentRange * ZOOM_FACTOR * zoomDirection;
+            const newRange = currentRange + zoomAmount;
+
+            if (newRange < 0.1 || newRange > 100) return;
+
+            const newHalfRange = newRange / 2;
+            const newMin = -newHalfRange;
+            const newMax = newHalfRange;
+
+            currentXRange.min = newMin;
+            currentXRange.max = newMax;
+            xMinInput.value = newMin.toFixed(2);
+            xMaxInput.value = newMax.toFixed(2);
+
+            syncXAxisRange(newMin, newMax);
+        }
+
+        function syncXAxisRange(xMin, xMax) {
+            charts.forEach(chart => {
+                const newData = generateData(chart.expression, xMin, xMax);
+                chart.data = newData;
+
+                const validYs = newData.map(d => d.y).filter(y => y !== null && isFinite(y)).sort((a, b) => a - b);
+
+                if (validYs.length > 0) {
+                    const minIdx = Math.floor(validYs.length * 0.03);
+                    const maxIdx = Math.floor(validYs.length * 0.97);
+                    const safeMinIdx = Math.max(0, minIdx);
+                    const safeMaxIdx = Math.min(validYs.length - 1, maxIdx);
+
+                    let yMin = validYs[safeMinIdx];
+                    let yMax = validYs[safeMaxIdx];
+
+                    const diff = yMax - yMin;
+                    if (diff === 0) {
+                        yMin -= 5; yMax += 5;
+                    } else {
+                        const padding = diff * 0.2;
+                        yMin -= padding; yMax += padding;
+                    }
+                    chart.yRange = [yMin, yMax];
+                } else {
+                    chart.yRange = [-10, 10];
+                }
+
+                Plotly.update(chart.element, {
+                    'x': [newData.map(d => d.x)],
+                    'y': [newData.map(d => d.y)]
+                }, {
+                    'xaxis.range': [xMin, xMax],
+                    'yaxis.range': chart.yRange
+                }, [0]);
+            });
+        }
+
+
+        function addDerivativeChart(parentIndex, parentExpression) {
+            try {
+                const newDerivExpr = getDerivative(parentExpression);
+                const newIndex = charts.length;
+                const nextDerivExpr = isConstant(newDerivExpr) ? '0' : getDerivative(newDerivExpr);
+                createChart(newIndex, newDerivExpr, nextDerivExpr);
+                const parentBtn = document.getElementById(`addBtn-${parentIndex}`);
+                if (parentBtn) parentBtn.disabled = true;
+            } catch (error) { alert('Unable to calculate derivative: ' + error.message); }
+        }
+
+        function initCharts() {
+            const funcExpr = functionInput.value.trim();
+            currentXRange.min = parseFloat(xMinInput.value);
+            currentXRange.max = parseFloat(xMaxInput.value);
+
+            if (!funcExpr) { alert('Please enter a function'); return; }
+            if (isNaN(currentXRange.min) || isNaN(currentXRange.max) || currentXRange.min >= currentXRange.max) {
+                alert('Invalid X-axis range.'); return;
+            }
+
+            chartsContainer.innerHTML = '';
+            charts = [];
+
+            try {
+                const derivExpr = getDerivative(funcExpr);
+                createChart(0, funcExpr, derivExpr);
+                const secondDerivExpr = isConstant(derivExpr) ? '0' : getDerivative(derivExpr);
+                createChart(1, derivExpr, secondDerivExpr);
+                saveToHistory(funcExpr);
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        function updatePointerAtX(xValue) {
+            charts.forEach(chart => {
+                const yValue = evaluateAt(chart.compiledExpr || chart.expression, xValue);
+                if (yValue === null) {
+                    hidePointerAndTangent(chart);
+                    return;
+                }
+                const slope = evaluateAt(chart.compiledDeriv || chart.derivativeExpr, xValue);
+                Plotly.restyle(chart.element, { 'x': [[xValue]], 'y': [[yValue]] }, [1]);
+
+                if (slope !== null && isFinite(slope)) {
+                    const layout = chart.element._fullLayout;
+                    if (!layout || !layout.xaxis) return;
+                    const xRange = layout.xaxis.range[1] - layout.xaxis.range[0];
+                    const tangentHalfLen = xRange * 0.15;
+                    const x1 = xValue - tangentHalfLen;
+                    const x2 = xValue + tangentHalfLen;
+                    const y1 = yValue + slope * (x1 - xValue);
+                    const y2 = yValue + slope * (x2 - xValue);
+
+                    Plotly.restyle(chart.element, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [2]);
+                    const slopeText = `<i>m</i> = ${slope.toFixed(2)}`;
+                    Plotly.relayout(chart.element, {
+                        annotations: [{
+                            x: xValue, y: yValue, xref: 'x', yref: 'y',
+                            text: slopeText, showarrow: false,
+                            font: { color: '#ef4444', size: 12 },
+                            bgcolor: 'rgba(30, 41, 59, 0.9)', borderpad: 4, yshift: 20
+                        }]
+                    });
+                } else {
+                    Plotly.restyle(chart.element, { 'x': [[null, null]], 'y': [[null, null]] }, [2]);
+                    Plotly.relayout(chart.element, { annotations: [] });
+                }
+            });
+        }
+
+        function animate() {
+            if (playSpeed === 0) { animationId = null; return; }
+
+            let validMin = currentXRange.min;
+            let validMax = currentXRange.max;
+            if (charts.length > 0 && charts[0].data.length > 0) {
+                const data = charts[0].data;
+                const firstValid = data.find(d => d.y !== null);
+                const lastValid = data.findLast(d => d.y !== null);
+                if (firstValid) validMin = firstValid.x;
+                if (lastValid) validMax = lastValid.x;
+            }
+
+            const rangeSpan = currentXRange.max - currentXRange.min;
+            const step = (rangeSpan / 500) * (playSpeed / 20);
+            animationX += step;
+
+            if (animationX > validMax) animationX = validMin;
+            else if (animationX < validMin) animationX = validMin;
+
+            updatePointerAtX(animationX);
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function startAnimation() {
+            if (animationId) return;
+            if (animationX === null) animationX = currentXRange.min;
+            animate();
+        }
+
+        function stopAnimation() {
+            if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+        }
+
+        const toolbarToggle = document.getElementById('toolbarToggle');
+        function toggleToolbar() {
+            toolbarVisible = !toolbarVisible;
+            charts.forEach(chart => {
+                if (toolbarVisible) chart.element.classList.remove('modebar-hidden');
+                else chart.element.classList.add('modebar-hidden');
+            });
+            toolbarToggle.textContent = toolbarVisible ? 'Hide Toolbar' : 'Show Toolbar';
+            if (toolbarVisible) toolbarToggle.classList.add('active');
+            else toolbarToggle.classList.remove('active');
+
+            // Should also update text based on state + language
+            const t = translations[currentLang];
+            toolbarToggle.textContent = toolbarVisible ? t.hide_toolbar : t.show_toolbar;
+        }
+
+        const playSpeedSlider = document.getElementById('playSpeed');
+        const speedValueDisplay = document.getElementById('speedValue');
+
+        playSpeedSlider.addEventListener('input', function () {
+            playSpeed = parseInt(this.value);
+            speedValueDisplay.textContent = playSpeed;
+            if (playSpeed > 0) startAnimation();
+            else {
+                stopAnimation();
+                charts.forEach(chart => hidePointerAndTangent(chart));
+            }
+        });
+
+        applyBtn.addEventListener('click', function () {
+            stopAnimation();
+            playSpeed = 0;
+            playSpeedSlider.value = 0;
+            speedValueDisplay.textContent = '0';
+            animationX = null;
+            initCharts();
+        });
+
+
+
+        toolbarToggle.addEventListener('click', toggleToolbar);
+        document.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') initCharts();
+        });
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            setStorage(LANG_STORAGE_KEY, lang);
+            const t = translations[lang];
+
+            // Update static elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) el.textContent = t[key];
+            });
+
+            // Update toggle buttons style
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                // Check stored language valid mapping for emoji/flag if necessary, 
+                // but here we rely on the onclick passing 'en' or 'ko'
+                // We identify buttons by their onclick attribute or some other marker.
+                // Simple way: check the onclick string or add an attribute.
+                // Re-selecting based on onclick content seems fragile but works for simple case.
+                const btnLang = btn.getAttribute('onclick').includes("'en'") ? 'en' : 'ko';
+                btn.classList.toggle('active', btnLang === lang);
+            });
+
+            // Update specific elements if needed
+            renderHistory();
+            initCharts();
+
+            const toolbarToggle = document.getElementById('toolbarToggle');
+            if (toolbarToggle) toolbarToggle.textContent = toolbarVisible ? t.hide_toolbar : t.show_toolbar;
+        }
+
+        // Initialize Language
+        setLanguage(currentLang);
+
+        const history = getHistory();
+        if (history.length > 0) functionInput.value = history[0];
+        renderHistory();
+        initCharts();
+    </script>
+</body>
+
+</html>
