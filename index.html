@@ -763,7 +763,7 @@
                 y2 = Math.max(-50000, Math.min(50000, y2));
 
                 Plotly.restyle(chartDiv, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [2]);
-                const slopeText = `<i>m</i> = ${slope.toFixed(2)}`;
+                const slopeText = `<i>m</i> = ${slope.toFixed(3)}`;
                 Plotly.relayout(chartDiv, {
                     annotations: [{
                         x: xValue, y: yValue, xref: 'x', yref: 'y',
@@ -806,7 +806,7 @@
                     y2 = Math.max(-50000, Math.min(50000, y2));
 
                     Plotly.restyle(chart.element, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [2]);
-                    const slopeText = `<i>m</i> = ${slope.toFixed(2)}`;
+                    const slopeText = `<i>m</i> = ${slope.toFixed(3)}`;
                     Plotly.relayout(chart.element, {
                         annotations: [{
                             x: xValue, y: yValue, xref: 'x', yref: 'y',
@@ -952,7 +952,7 @@
                     y2 = Math.max(-50000, Math.min(50000, y2));
 
                     Plotly.restyle(chart.element, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [2]);
-                    const slopeText = `<i>m</i> = ${slope.toFixed(2)}`;
+                    const slopeText = `<i>m</i> = ${slope.toFixed(3)}`;
                     Plotly.relayout(chart.element, {
                         annotations: [{
                             x: xValue, y: yValue, xref: 'x', yref: 'y',
