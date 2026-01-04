@@ -1096,7 +1096,8 @@
                     return;
                 }
                 const slope = evaluateAt(chart.compiledDeriv || chart.derivativeExpr, xValue);
-                Plotly.restyle(chart.element, { 'x': [[xValue]], 'y': [[yValue]] }, [1]);
+                // Correct index: Trace 2 is Pointer
+                Plotly.restyle(chart.element, { 'x': [[xValue]], 'y': [[yValue]] }, [2]);
 
                 if (slope !== null && isFinite(slope)) {
                     const layout = chart.element._fullLayout;
@@ -1111,7 +1112,8 @@
                     y1 = Math.max(-50000, Math.min(50000, y1));
                     y2 = Math.max(-50000, Math.min(50000, y2));
 
-                    Plotly.restyle(chart.element, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [2]);
+                    // Correct index: Trace 3 is Tangent
+                    Plotly.restyle(chart.element, { 'x': [[x1, x2]], 'y': [[y1, y2]] }, [3]);
                     const slopeText = `<i>m</i> = ${slope.toFixed(3)}`;
                     Plotly.relayout(chart.element, {
                         annotations: [{
@@ -1122,7 +1124,7 @@
                         }]
                     });
                 } else {
-                    Plotly.restyle(chart.element, { 'x': [[null, null]], 'y': [[null, null]] }, [2]);
+                    Plotly.restyle(chart.element, { 'x': [[null, null]], 'y': [[null, null]] }, [3]);
                     Plotly.relayout(chart.element, { annotations: [] });
                 }
             });
