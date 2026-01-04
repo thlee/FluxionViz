@@ -90,7 +90,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.25rem;
             flex-wrap: wrap;
             gap: 0.5rem;
         }
@@ -349,7 +349,7 @@
         // Configuration
         const STEP_SIZE = 0.005;
         const ZOOM_FACTOR = 0.1;
-        const MAX_HISTORY = 10;
+        const MAX_HISTORY = 5;
         const STORAGE_KEY = 'fluxionviz_history';
 
         // LocalStorage & History functions
@@ -420,7 +420,7 @@
                 toolbar_label: 'Chart Toolbar:',
                 show_toolbar: 'Show Toolbar',
                 hide_toolbar: 'Hide Toolbar',
-                history_label: 'History (Recent 10):',
+                history_label: 'History (Recent 5):',
                 no_history: 'No history yet',
                 rights: 'All rights reserved.',
                 license_prefix: 'Released under the',
@@ -442,7 +442,7 @@
                 toolbar_label: '차트 툴바:',
                 show_toolbar: '툴바 보이기',
                 hide_toolbar: '툴바 숨기기',
-                history_label: '기록 (최근 10개):',
+                history_label: '기록 (최근 5개):',
                 no_history: '아직 기록이 없습니다',
                 rights: 'All rights reserved.',
                 license_prefix: 'MIT 라이선스로 배포됩니다.',
@@ -662,7 +662,7 @@
                     zeroline: true, zerolinecolor: '#475569',
                     range: initialYRange, fixedrange: false, autorange: false
                 },
-                margin: { t: 20, r: 30, b: 50, l: 60 },
+                margin: { t: 10, r: 20, b: 35, l: 45 },
                 showlegend: false, hovermode: 'closest', dragmode: false, annotations: []
             };
 
