@@ -483,39 +483,15 @@
                 // 1. Get raw derivative (no simplification)
                 const raw = math.derivative(expression, 'x', { simplify: false });
 
-                // 2. Use standard algebraic rules, EXCLUDING internal functions and constant evaluation.
-                // math.simplify.rules contains internal functions (like simplifyConstant) that cause
-                // "Unexpected type of argument" errors if passed back to simplify().
-                // We only want string patterns or valid rule objects (with 'l' property).
-                let rules = math.simplify.rules.filter(r => {
-                    const isRule = (typeof r === 'string') || (r && typeof r.l !== 'undefined');
-                    const isConstant = r.name === 'simplifyConstant'; // Double check to be safe
-                    return isRule && !isConstant;
-                });
+                // 2. Use standard algebraic rules, BUT FILTER OUT constant evaluation.
+                // We identified 'simplifyConstant' as the rule name responsible for evaluating constants.
+                // This approach is safer than mixing complex handlers.
+                let rules = math.simplify.rules.filter(r => r.name !== 'simplifyConstant');
 
                 // 3. Add our custom styling preferences
                 rules.push({ l: 'n * n', r: 'n^2' }); // Square grouping
                 rules.push({ l: 'n / n', r: '1' });   // Self-division
                 rules.push({ l: '(n * 1) / n', r: '1' }); // Complex self-division artifact
-
-                // 4. Safe Constant Arithmetic (e.g. 2 - 1 -> 1, but NOT log(2) -> 0.693)
-                // We define a handler that only evaluates if operands are ConstantNodes.
-                // FunctionNodes (like log(2)) are NOT ConstantNodes, so they are preserved.
-                const evalIfConstant = (node, { c1, c2 }) => {
-                    if (c1.isConstantNode && c2.isConstantNode) {
-                        try {
-                            const val = node.evaluate(); // Evaluate the sub-expression
-                            return math.parse(String(val));
-                        } catch (e) { }
-                    }
-                    return node;
-                };
-
-                rules.push({ l: 'c1 + c2', handler: evalIfConstant });
-                rules.push({ l: 'c1 - c2', handler: evalIfConstant });
-                rules.push({ l: 'c1 * c2', handler: evalIfConstant });
-                rules.push({ l: 'c1 / c2', handler: evalIfConstant });
-                rules.push({ l: 'c1 ^ c2', handler: evalIfConstant });
 
                 const simplified = math.simplify(raw, rules);
                 return simplified.toString();
