@@ -326,15 +326,17 @@
 
         <footer class="mt-12 py-6 text-center border-t border-slate-700">
             <p class="text-gray-500 text-sm">
-                &copy; 2026 Tae-Ho Lee (<a href="mailto:alfalf@gmail.com" class="hover:text-blue-400">alfalf@gmail.com</a>)
+                &copy; 2026 Tae-Ho Lee (<a href="mailto:alfalf@gmail.com"
+                    class="hover:text-blue-400">alfalf@gmail.com</a>)
             </p>
             <p class="text-gray-600 text-xs mt-2 mx-auto max-w-2xl leading-relaxed">
-                <strong>Disclaimer:</strong> This tool is for <b>educational purposes only</b>. 
-                Numerical derivatives and graphs may differ from strict mathematical definitions due to floating-point arithmetic limitations (e.g., derivative of log(x) in negative domain). 
-                Always verify with textbooks.
+                <strong>Disclaimer:</strong> This tool is for <b>educational purposes only</b>. Numerical derivatives
+                and graphs may differ from strict mathematical definitions due to floating-point arithmetic limitations
+                (e.g., derivative of log(x) in negative domain). Always verify with textbooks.
             </p>
             <p class="text-gray-600 text-xs mt-1">
-                Released under the <a href="https://opensource.org/licenses/MIT" target="_blank" class="text-blue-400 hover:underline">MIT License</a>.
+                Released under the <a href="https://opensource.org/licenses/MIT" target="_blank"
+                    class="text-blue-400 hover:underline">MIT License</a>.
             </p>
         </footer>
     </div>
@@ -542,7 +544,51 @@
             } catch (e) { return null; }
         }
 
+        function splitDataByDomain(data, domainCompiledExpr) {
+            const activeData = { x: [], y: [] };
+            const ghostData = { x: [], y: [] };
 
+            let wasActive = null;
+
+            for (let i = 0; i < data.length; i++) {
+                const pt = data[i];
+                if (pt.y === null) {
+                    activeData.x.push(pt.x); activeData.y.push(null);
+                    ghostData.x.push(pt.x); ghostData.y.push(null);
+                    continue;
+                }
+
+                let isActive = false;
+                try {
+                    if (domainCompiledExpr) {
+                        const y0 = evaluateAt(domainCompiledExpr, pt.x);
+                        isActive = (y0 !== null && isFinite(y0));
+                    } else {
+                        isActive = true;
+                    }
+                } catch (e) { isActive = false; }
+
+                if (isActive) {
+                    if (wasActive === false) {
+                        activeData.x.push(pt.x); activeData.y.push(null);
+                    }
+                    activeData.x.push(pt.x); activeData.y.push(pt.y);
+                    if (wasActive === false) {
+                        ghostData.x.push(pt.x); ghostData.y.push(null);
+                    }
+                } else {
+                    if (wasActive === true) {
+                        ghostData.x.push(pt.x); ghostData.y.push(null);
+                    }
+                    ghostData.x.push(pt.x); ghostData.y.push(pt.y);
+                    if (wasActive === true) {
+                        activeData.x.push(pt.x); activeData.y.push(null);
+                    }
+                }
+                wasActive = isActive;
+            }
+            return { active: activeData, ghost: ghostData };
+        }
 
         function createChart(index, expression, derivativeExpr) {
             const container = document.createElement('div');
@@ -598,59 +644,7 @@
                 };
             }
 
-            function splitDataByDomain(data, domainCompiledExpr) {
-                const activeData = { x: [], y: [] };
-                const ghostData = { x: [], y: [] };
-
-                let wasActive = null;
-
-                for (let i = 0; i < data.length; i++) {
-                    const pt = data[i];
-                    if (pt.y === null) {
-                        activeData.x.push(pt.x); activeData.y.push(null);
-                        ghostData.x.push(pt.x); ghostData.y.push(null);
-                        continue;
-                    }
-
-                    // Check if primary function exists at this x
-                    let isActive = false;
-                    try {
-                        // Use evaluateAt to leverage existing safety checks (NaN/Finite)
-                        // If result is non-null and finite, domain is valid.
-                        // domainCompiledExpr might be null if compilation failed, assume active? No, assume inactive if unknown? 
-                        // Actually if Charts[0] exists, use it. But here we need generic domain check.
-                        // Better to pass the compiled expr of Chart[0].
-                        if (domainCompiledExpr) {
-                            const y0 = evaluateAt(domainCompiledExpr, pt.x);
-                            isActive = (y0 !== null && isFinite(y0));
-                        } else {
-                            isActive = true; // Fallback
-                        }
-                    } catch (e) { isActive = false; }
-
-                    if (isActive) {
-                        // If switching state, break the line to prevent cross-connection
-                        if (wasActive === false) {
-                            activeData.x.push(pt.x); activeData.y.push(null);
-                        }
-                        activeData.x.push(pt.x); activeData.y.push(pt.y);
-                        // Push null to ghost to break its line
-                        if (wasActive === false) {
-                            ghostData.x.push(pt.x); ghostData.y.push(null);
-                        }
-                    } else {
-                        if (wasActive === true) {
-                            ghostData.x.push(pt.x); ghostData.y.push(null);
-                        }
-                        ghostData.x.push(pt.x); ghostData.y.push(pt.y);
-                        if (wasActive === true) {
-                            activeData.x.push(pt.x); activeData.y.push(null);
-                        }
-                    }
-                    wasActive = isActive;
-                }
-                return { active: activeData, ghost: ghostData };
-            }
+            // End of Tool Listeners
 
             const chartDiv = document.getElementById(`chart-${index}`);
             // generateData now returns object
@@ -976,9 +970,10 @@
 
             if (newRange < 0.1 || newRange > 100) return;
 
+            const center = (currentXRange.min + currentXRange.max) / 2;
             const newHalfRange = newRange / 2;
-            const newMin = -newHalfRange;
-            const newMax = newHalfRange;
+            const newMin = center - newHalfRange;
+            const newMax = center + newHalfRange;
 
             currentXRange.min = newMin;
             currentXRange.max = newMax;
@@ -1193,6 +1188,18 @@
             playSpeedSlider.value = 0;
             speedValueDisplay.textContent = '0';
             animationX = null;
+
+            // Always reset X-Axis to defaults
+            const defaultMin = -5;
+            const defaultMax = 5;
+
+            xMinInput.value = defaultMin;
+            xMaxInput.value = defaultMax;
+
+            // Sync internal state
+            currentXRange.min = defaultMin;
+            currentXRange.max = defaultMax;
+
             initCharts();
         });
 
