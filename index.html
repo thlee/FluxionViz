@@ -480,8 +480,39 @@
 
         function getDerivative(expression) {
             try {
-                const derivative = math.derivative(expression, 'x');
-                return math.simplify(derivative).toString();
+                // 1. Get raw derivative (no simplification)
+                const raw = math.derivative(expression, 'x', { simplify: false });
+
+                // 2. Use standard algebraic rules, BUT FILTER OUT constant evaluation.
+                // We identified 'simplifyConstant' as the rule name responsible for evaluating constants.
+                let rules = math.simplify.rules.filter(r => r.name !== 'simplifyConstant');
+
+                // 3. Add our custom styling preferences
+                rules.push({ l: 'n * n', r: 'n^2' }); // Square grouping
+                rules.push({ l: 'n / n', r: '1' });   // Self-division
+                rules.push({ l: '(n * 1) / n', r: '1' }); // Complex self-division artifact
+
+                // 4. Safe Constant Arithmetic (e.g. 2 - 1 -> 1, but NOT log(2) -> 0.693)
+                // We define a handler that only evaluates if operands are ConstantNodes.
+                // FunctionNodes (like log(2)) are NOT ConstantNodes, so they are preserved.
+                const evalIfConstant = (node, { c1, c2 }) => {
+                    if (c1.isConstantNode && c2.isConstantNode) {
+                        try {
+                            const val = node.evaluate(); // Evaluate the sub-expression
+                            return math.parse(String(val));
+                        } catch (e) { }
+                    }
+                    return node;
+                };
+
+                rules.push({ l: 'c1 + c2', handler: evalIfConstant });
+                rules.push({ l: 'c1 - c2', handler: evalIfConstant });
+                rules.push({ l: 'c1 * c2', handler: evalIfConstant });
+                rules.push({ l: 'c1 / c2', handler: evalIfConstant });
+                rules.push({ l: 'c1 ^ c2', handler: evalIfConstant });
+
+                const simplified = math.simplify(raw, rules);
+                return simplified.toString();
             } catch (error) { throw new Error('Unable to calculate derivative: ' + error.message); }
         }
 
