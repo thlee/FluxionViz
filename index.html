@@ -483,9 +483,15 @@
                 // 1. Get raw derivative (no simplification)
                 const raw = math.derivative(expression, 'x', { simplify: false });
 
-                // 2. Use standard algebraic rules, BUT FILTER OUT constant evaluation.
-                // We identified 'simplifyConstant' as the rule name responsible for evaluating constants.
-                let rules = math.simplify.rules.filter(r => r.name !== 'simplifyConstant');
+                // 2. Use standard algebraic rules, EXCLUDING internal functions and constant evaluation.
+                // math.simplify.rules contains internal functions (like simplifyConstant) that cause
+                // "Unexpected type of argument" errors if passed back to simplify().
+                // We only want string patterns or valid rule objects (with 'l' property).
+                let rules = math.simplify.rules.filter(r => {
+                    const isRule = (typeof r === 'string') || (r && typeof r.l !== 'undefined');
+                    const isConstant = r.name === 'simplifyConstant'; // Double check to be safe
+                    return isRule && !isConstant;
+                });
 
                 // 3. Add our custom styling preferences
                 rules.push({ l: 'n * n', r: 'n^2' }); // Square grouping
