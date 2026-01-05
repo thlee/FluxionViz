@@ -24,9 +24,24 @@ I am releasing this project to the public in the hopes that it might be useful t
 - **Performance Optimized**: Uses compiled expressions for instantaneous evaluation even with complex formulas.
 - **Math Notation**: Properly renders mathematical formulas using LaTeX formatting for clear reading.
 
-## Known Issues
+## Limitations & Disclaimer
 
-- **Y-Axis Auto-Scaling**: The current logic uses percentile-based filtering (approx. top/bottom 3%) to handle functions with extreme values (like `tan(x)`). However, this approach can sometimes inadvertently crop valid ranges for bounded functions (e.g., semi-circles or functions starting exactly at 0).
+This project, **FluxionViz**, is a visualization tool designed for **educational purposes**. 
+It relies on numerical methods (JavaScript `Math.js` & `Plotly.js`) which may introduce discrepancies from pure mathematical theory.
+
+**Known Limitations:**
+1. **Floating Point Errors:** Tiny calculation errors may occur near zero or extremely large numbers.
+2. **Discontinuities:** While we try to handle asymptotes, some vertical lines may appear where graphs should be discontinuous.
+3. **Non-differentiable Points:** Points where a function is not differentiable (e.g., sharp corners or cusps) are not explicitly marked or handled as undefined, which might lead to misleading visual results in derivative graphs.
+4. **Y-Axis Auto-Scaling**: The current logic uses percentile-based filtering (approx. top/bottom 3%) to handle functions with extreme values (like `tan(x)`). However, this approach can sometimes inadvertently crop valid ranges for bounded functions (e.g., semi-circles or functions starting exactly at 0).
+5. **Device Compatibility**: This tool is optimized for **Desktop/PC** environments. Features like hover-based tangent visualization require a mouse cursor and may not function optimally on touch devices (smartphones/tablets).
+
+Please use this tool to build intuition, but rely on formal mathematical proofs for strict definitions.
+
+**Disclaimer:**
+- This tool is for educational use only and is not a rigorous mathematical proof tool.
+- Due to the nature of floating-point arithmetic, there may be slight errors or representation issues in undefined regions.
+- The author provides this tool "as is" and is not responsible for any issues arising from its use (e.g., errors in homework).
 
 ## Tech Stack
 
@@ -54,7 +69,8 @@ This is a **single-file** application with no backend requirements. It runs enti
 -   **Polynomials**: `x^3 - 3x + 2` (Watch where the slope is zero!)
 -   **Trigonometry**: `sin(x)` (Notice how the derivative is `cos(x)`)
 -   **Exponential**: `exp(x)` (The function that is its own derivative)
--   **Logarithmic**: `log(x)`
+-   **Logarithmic**: `log(x)` (See the behavior near x=0)
+-   **Non-differentiable**: `abs(x)` (Note: Visual indication for non-differentiable points is not yet implemented)
 
 ## Acknowledgments
 
