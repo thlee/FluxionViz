@@ -11,7 +11,7 @@ I am releasing this project to the public in the hopes that it might be useful t
 ## Features
 
 - **Real-time Visualization**: Instantly see the graph of any mathematical function $f(x)$.
-- **Automatic Differentiation**: The tool automatically calculates and plots the derivative $f'(x)$ (and higher-order derivatives) using symbolic differentiation.
+- **Automatic Differentiation**: The tool automatically calculates and plots the derivative $f'(x)$ using symbolic differentiation. It is tuned to preserve symbolic constants (e.g., `ln(2)`) instead of converting them to decimals.
 - **Interactive Tangent Lines**: Hover over any point on the curve to see the tangent line and the exact slope value at that point.
 - **Synchronized Views**: Moving your mouse over one chart automatically updates the pointer and values on all other synchronized derivative charts.
 - **Dynamic Animation**: A built-in "play" mode animates the point moving across the function, allowing you to observe how the slope evolves over time.
@@ -33,8 +33,9 @@ It relies on numerical methods (JavaScript `Math.js` & `Plotly.js`) which may in
 1. **Floating Point Errors:** Tiny calculation errors may occur near zero or extremely large numbers.
 2. **Discontinuities:** While we try to handle asymptotes, some vertical lines may appear where graphs should be discontinuous.
 3. **Non-differentiable Points:** Points where a function is not differentiable (e.g., sharp corners or cusps) are not explicitly marked or handled as undefined, which might lead to misleading visual results in derivative graphs.
-4. **Y-Axis Auto-Scaling**: The current logic uses percentile-based filtering (approx. top/bottom 3%) to handle functions with extreme values (like `tan(x)`). However, this approach can sometimes inadvertently crop valid ranges for bounded functions (e.g., semi-circles or functions starting exactly at 0).
-5. **Device Compatibility**: This tool is optimized for **Desktop/PC** environments. Features like hover-based tangent visualization require a mouse cursor and may not function optimally on touch devices (smartphones/tablets).
+4. **Y-Axis Auto-Scaling**: The current logic uses percentile-based filtering to handle functions with extreme values (like `tan(x)`), which may sometimes crop valid ranges.
+5. **Integer Arithmetic Simplification**: To prevent symbolic constants like `log(2)` from being evaluated to decimals, some basic integer arithmetic (e.g., `2 - 1` in exponents) might not be automatically simplified.
+6. **Device Compatibility**: This tool is optimized for **Desktop/PC** environments. Touch interactions may be limited.
 
 Please use this tool to build intuition, but rely on formal mathematical proofs for strict definitions.
 
